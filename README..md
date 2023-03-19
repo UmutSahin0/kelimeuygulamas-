@@ -1,0 +1,1 @@
+Burası detaylıca hazırlanacak.
