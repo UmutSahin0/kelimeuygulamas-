@@ -8,10 +8,14 @@ import tkinter as tk
 import random
 import os
 from gtts.tts import gTTS
+import pandas as pd
+
 
 #dizin değiştirme
 #os.chdir("C:\\Users\\PC\\Desktop\\Masaüstü\\kelimeler")
 #kelimeler klasörünün içindekileri sıralayıp içerik değişkeninin içine attık
+result_df = pd.read_csv('results.csv')
+
 icerik=sorted(os.listdir())
 #klasör içerisinden sadece sonu .txt ile bitenleri çektik.
 icerik = [s for s in icerik if s.endswith('.txt')]
@@ -31,11 +35,13 @@ def iceri_aktar():
     #listboxta hangi içeriği seçtiysek onu açıp oku ve dosya_icerik değişkenine at
     with open((os.getcwd()+"\\"+icerik_sozluk[lb.curselection()[0]]),encoding="utf8") as dosya:
         dosya_icerik=dosya.readlines()
-        
+    
+
     if len(dosya_icerik)>0:
         etiket3["text"]=str(icerik_sozluk[lb.curselection()[0]])+" basariyla aktarildi."
     else:
         etiket3["text"]="Bir sorunla karşılaşıldı."
+    
     
     
     
@@ -46,19 +52,31 @@ def yukle():
     global ceviri
     global k
     global dosya_icerik
+    global kelimeler
+    tr_words=[]
+    eng_words=[]
+    kelimeler = pd.DataFrame()
     
     #dosya içeriğinin satır satır split edilip ingilizce ve türkçe olarak ayrı listelere alınması
     for i in dosya_icerik:
-        eng_words,tr_words=i.split("-")
-        if "\n" in tr_words:
-            tr_words=tr_words.replace("\n","")
-        
+        eng_word,tr_word=i.split("-")
+        if "\n" in tr_word:
+            tr_word=tr_word.replace("\n","")
+        eng_words.append(eng_word)
+        tr_words.append(tr_word)
         #ayırdığımız kelimelerin ceviri değişkenine atılması
-        ceviri.append([eng_words,tr_words])
+        ceviri.append([eng_word,tr_word])
         
     #çeviri listesini karıştırıyoruz. Düzenli olarak aynı sıra ile sormaması için
     random.shuffle(ceviri)
     etiket4["text"]="basariyla yuklendi çalışabilirsin"
+    kelimeler['turkce']=tr_words
+    kelimeler['ingilizce']=eng_words
+
+    merged_df = pd.merge(result_df, kelimeler, on='turkce', how='left')
+    print(merged_df)
+
+
     
 
 def next_word(ceviri=ceviri):
@@ -174,5 +192,7 @@ translate_button.pack()
 
 #formu ekrana bastırma
 form.mainloop()
+
+
 
 
