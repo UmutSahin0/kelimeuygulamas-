@@ -14,13 +14,14 @@ import pandas as pd
 #dizin değiştirme
 #os.chdir("C:\\Users\\PC\\Desktop\\Masaüstü\\kelimeler")
 #kelimeler klasörünün içindekileri sıralayıp içerik değişkeninin içine attık
-result_df = pd.read_csv('results.csv')
+
+
 
 icerik=sorted(os.listdir())
 #klasör içerisinden sadece sonu .txt ile bitenleri çektik.
 icerik = [s for s in icerik if s.endswith('.txt')]
 words=[]
-
+merged_df = pd.DataFrame()
 ceviri=[]
 k=-1
 dosya_icerik=[]
@@ -41,6 +42,21 @@ def iceri_aktar():
         etiket3["text"]=str(icerik_sozluk[lb.curselection()[0]])+" basariyla aktarildi."
     else:
         etiket3["text"]="Bir sorunla karşılaşıldı."
+
+    dosya_yolu = 'merged.csv'
+
+    # Eğer dosya mevcutsa oku, yoksa oluşturup sonra oku
+    if os.path.exists(dosya_yolu):
+        merged_df = pd.read_csv(dosya_yolu)
+    else:
+        # Veri çerçevesi oluşturun (örneğin bir boş DataFrame)
+        merged_df = pd.DataFrame(columns=['turkce', 'ingilizce','puan'])  # Sütun isimlerini buraya göre değiştirin
+        
+        # Dosyayı oluşturun ve başlıkları yazın
+        merged_df.to_csv(dosya_yolu, index=False)
+        
+        # Dosyayı tekrar okuyun
+        merged_df = pd.read_csv(dosya_yolu)
     
     
     
@@ -52,6 +68,7 @@ def yukle():
     global ceviri
     global k
     global dosya_icerik
+    global merged_df
     global kelimeler
     tr_words=[]
     eng_words=[]
@@ -72,9 +89,15 @@ def yukle():
     etiket4["text"]="basariyla yuklendi çalışabilirsin"
     kelimeler['turkce']=tr_words
     kelimeler['ingilizce']=eng_words
+    merged_df=pd.read_csv('merged.csv')
 
-    merged_df = pd.merge(result_df, kelimeler, on='turkce', how='left')
-    print(merged_df)
+    merged_df = pd.merge(merged_df, kelimeler, on='turkce', how='right')
+    merged_df = merged_df.drop(columns=['ingilizce_x'])
+    merged_df = merged_df.rename(columns={'ingilizce_y': 'ingilizce'})
+
+
+    merged_df['puan'] = merged_df['puan'].fillna(value=0) # yeni eklenen kelime varsa puan null olacak. buna 0 puan veriyoruz.
+    merged_df[['turkce','ingilizce','puan']].to_csv('merged.csv')
 
 
     
@@ -105,6 +128,23 @@ def next_word(ceviri=ceviri):
     #sıradaki kelimeye geçildiğinde translate için oluşturulan mp3 dosyası silinsin.
     if os.path.exists("text.mp3"):
         os.remove("text.mp3")
+
+
+def dogru(ceviri=ceviri):
+    global merged_df
+   
+    kosul = merged_df['ingilizce'] == ceviri[k][0]
+
+    merged_df.loc[kosul, 'puan'] += 3
+
+    merged_df[['turkce','ingilizce','puan']].to_csv('merged.csv')
+
+    
+    
+    
+
+        
+    
     
     
         
@@ -139,9 +179,14 @@ form.title("İngilizce - Türkçe Kelime Uygulaması")
 form.geometry("500x500+500+350")
 
 
-next_word_button=tk.Button(form,text="next",command=next_word)
+next_word_buton=tk.Button(form,text="next word",command=next_word)
 form.bind("<Return>",lambda event:next_word(ceviri))
-next_word_button.pack(pady=20)
+next_word_buton.pack(pady=20)
+
+dogru_buton=tk.Button(form,text="dogru",command=dogru)
+form.bind("<Return>",lambda event:dogru(ceviri))
+dogru_buton.pack(pady=20)
+
 
 
 show_answer_button=tk.Button(form,text="show",command=show_answer)
