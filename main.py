@@ -2,7 +2,7 @@
 """
 Created on Tue Aug 30 15:01:32 2022
 
-@author: PC
+@author: Umut Şahin
 """
 import tkinter as tk
 import random
@@ -10,6 +10,8 @@ import os
 from gtts.tts import gTTS
 import pandas as pd
 
+#TODO dogru/yanlis butonlarına basıldığında işlemin gerçekleştiğine dair arayüzde bilgilendirici bir şey gerek 
+#TODO puan'lara ağırlıklı rastgele seçim yapmak algoritması eklenecek
 
 #dizin değiştirme
 #os.chdir("C:\\Users\\PC\\Desktop\\Masaüstü\\kelimeler")
@@ -28,11 +30,13 @@ dosya_icerik=[]
 tr_words=[]
 eng_words=[]
 flag=0
+secilen_txt_ismi =''
 def iceri_aktar():
     #globaldeki değişkenleri çağırdık
     global words
     global txt_indexi
     global dosya_icerik
+    global secilen_txt_ismi
     #listboxta hangi içeriği seçtiysek onu açıp oku ve dosya_icerik değişkenine at
     with open((os.getcwd()+"\\"+icerik_sozluk[lb.curselection()[0]]),encoding="utf8") as dosya:
         dosya_icerik=dosya.readlines()
@@ -43,7 +47,9 @@ def iceri_aktar():
     else:
         etiket3["text"]="Bir sorunla karşılaşıldı."
 
-    dosya_yolu = 'merged.csv'
+    secilen_txt_ismi = str(icerik_sozluk[lb.curselection()[0]]).split('.')[0]
+
+    dosya_yolu = f'{secilen_txt_ismi}_merged.csv'
 
     # Eğer dosya mevcutsa oku, yoksa oluşturup sonra oku
     if os.path.exists(dosya_yolu):
@@ -89,7 +95,7 @@ def yukle():
     etiket4["text"]="basariyla yuklendi çalışabilirsin"
     kelimeler['turkce']=tr_words
     kelimeler['ingilizce']=eng_words
-    merged_df=pd.read_csv('merged.csv')
+    merged_df=pd.read_csv(f'{secilen_txt_ismi}_merged.csv')
 
     merged_df = pd.merge(merged_df, kelimeler, on='turkce', how='right')
     merged_df = merged_df.drop(columns=['ingilizce_x'])
@@ -97,7 +103,7 @@ def yukle():
 
 
     merged_df['puan'] = merged_df['puan'].fillna(value=0) # yeni eklenen kelime varsa puan null olacak. buna 0 puan veriyoruz.
-    merged_df[['turkce','ingilizce','puan']].to_csv('merged.csv')
+    merged_df[['turkce','ingilizce','puan']].to_csv(f'{secilen_txt_ismi}_merged.csv')
 
 
     
@@ -135,17 +141,27 @@ def dogru(ceviri=ceviri):
    
     kosul = merged_df['ingilizce'] == ceviri[k][0]
 
-    merged_df.loc[kosul, 'puan'] += 3
+    if merged_df.loc[kosul, 'puan'] <= 75:
+        merged_df.loc[kosul, 'puan'] += 5
 
-    merged_df[['turkce','ingilizce','puan']].to_csv('merged.csv')
+        merged_df[['turkce','ingilizce','puan']].to_csv(f'{secilen_txt_ismi}_merged.csv')
+    else:
+        pass
+    print('Puan islendi')
 
-    
-    
-    
+def yanlis(ceviri=ceviri):
+    global merged_df
+   
+    kosul = merged_df['ingilizce'] == ceviri[k][0]
 
-        
+    if merged_df.loc[kosul, 'puan'] >= 2:
+        merged_df.loc[kosul, 'puan'] -= 2
+
+        merged_df[['turkce','ingilizce','puan']].to_csv(f'{secilen_txt_ismi}_merged.csv')
+    else:
+        pass
     
-    
+    print('Puan islendi')
     
         
     
@@ -157,6 +173,7 @@ def show_answer():
         etiket_eng2["text"]=ceviri[k][0]
     elif side==0:
         etiket_tr2["text"]=ceviri[k][1]
+        
     #k yı next_word ile değil show_answer ile arttırıyorum. anca show_answer yaptıkça k yı arttırıp
     #çevirideki kelimelerde bi sonraki sıraya geçebiliyoruz. Böylelikle çevirisini görmediğimiz kelime kalmıyor.
    
@@ -186,6 +203,10 @@ next_word_buton.pack(pady=20)
 dogru_buton=tk.Button(form,text="dogru",command=dogru)
 form.bind("<Return>",lambda event:dogru(ceviri))
 dogru_buton.pack(pady=20)
+
+yanlis_buton=tk.Button(form,text="yanlis",command=yanlis)
+form.bind("<Return>",lambda event:yanlis(ceviri))
+yanlis_buton.pack(pady=20)
 
 
 
